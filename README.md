@@ -5,6 +5,7 @@ Examples of calling Cobalt's Python SDKs.
 The [cubic](./cubic) folder contains two example clients that interact with Cubic.
 * [batch_client](./cubic/batch_client.py), which submits all audio to Cubic before receiving a transcript. Audio data is read from a file.
 * [streaming_client](./cubic/streaming_client.py), which streams audio to Cubic as it becomes available, and receives transcripts back from Cubic as they become available. The audio I/O is handled by a user-specified external process, such as sox, aplay, arecord, etc.
+* [webrtc_client](./cubic/webrtc_client.py), which streams audio to Cubic as it becomes available, and receives transcripts back from Cubic as they become available. The audio I/O is handled by a user-specified external process, such as sox, aplay, arecord, etc.
 
 ## Luna Example
 The [luna](./luna) folder contains an example client that interacts with Luna.

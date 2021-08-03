@@ -112,9 +112,9 @@ async def main():
                     with open('webrtc_result.txt', 'a') as the_file:
                         the_file.write(str(message, 'utf-8')+'\n')
         # add audio streams
-        audio = create_local_tracks("sample2.wav")
+        audio = create_local_tracks("samples/travel1-left.wav")
         pc.addTrack(audio)
-        audio1 = create_local_tracks("sample2.wav")
+        audio1 = create_local_tracks("samples/travel1-right.wav")
         pc.addTrack(audio1)
         channel = pc.createDataChannel("output_data_channel")
 

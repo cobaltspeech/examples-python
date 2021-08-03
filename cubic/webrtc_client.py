@@ -16,9 +16,12 @@
 
 
 import asyncio
+import json
 import requests
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer
+
+track_labels = {}
 
 def channel_log(channel, separator, message):
     print("channel(%s) %s %s" % (channel.label, separator, message))
@@ -27,13 +30,15 @@ def channel_send(channel, message):
     channel_log(channel, ">", message)
     channel.send(message)
 
+# This method uses MediaPlayer to push audio from a local file as if it were a real-time stream
+# to simulate an audio stream coming in from a peer.
 def create_local_tracks(play_from):
     player = MediaPlayer(play_from)
     return player.audio
     
 def sendOfferCubicsvr(sdp)->RTCSessionDescription:
     # host of cubicsvr
-    url = "http://localhost:8000/webrtc"
+    url = "http://100.78.103.101:8000/webrtc"
     # cubic modelID
     modelId = "en_US-16-FF"
     action_item = requests.post(url, json={
@@ -109,12 +114,22 @@ async def main():
                 @channel.on("message")
                 def on_message(message):
                     channel_log(channel, "<", message)
+                    try:
+                        json_message = json.loads(str(message, 'utf-8'))
+                        track_id = json_message["track_id"]
+                        result = json_message["result"]["alternatives"][0]
+                        output = "[{0} {1}] {2}\n".format(result["start_time"], track_labels[track_id], result["transcript"])
+                    except Exception as err:
+                        channel_log(channel, "<", "**** Error parsing JSON {0} ****".format(err))
+                        return
                     with open('webrtc_result.txt', 'a') as the_file:
-                        the_file.write(str(message, 'utf-8')+'\n')
+                        the_file.write(output)
         # add audio streams
         audio = create_local_tracks("samples/travel1-left.wav")
+        track_labels[audio.id] = "Agent"
         pc.addTrack(audio)
         audio1 = create_local_tracks("samples/travel1-right.wav")
+        track_labels[audio1.id] = "Client"
         pc.addTrack(audio1)
         channel = pc.createDataChannel("output_data_channel")
 

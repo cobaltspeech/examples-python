@@ -18,10 +18,14 @@
 import asyncio
 import json
 import requests
+from pathlib import Path
+from os import walk
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer
 
 track_labels = {}
+file_count: int
+pc: RTCPeerConnection
 
 def channel_log(channel, separator, message):
     print("channel(%s) %s %s" % (channel.label, separator, message))
@@ -59,7 +63,8 @@ def sendOfferCubicsvr(sdp)->RTCSessionDescription:
     return RTCSessionDescription(json['sdp'], json['type'])
 
 async def start():
-    while True:
+    global pc
+    while pc.connectionState != "closed":
         await asyncio.sleep(1)
 
 # Web browser and Pion (golang WebRTC library) expect similar Pion 'ice-ufrag' and 'ice-pwd' for each stream.
@@ -95,6 +100,7 @@ async def createOffer(pc)->RTCSessionDescription:
     return RTCSessionDescription(sdp,offer.type)
 
 async def main():
+        global pc
         pc = RTCPeerConnection()
         
         @pc.on("connectionstatechange")
@@ -124,13 +130,25 @@ async def main():
                         return
                     with open('webrtc_result.txt', 'a') as the_file:
                         the_file.write(output)
+        
         # add audio streams
-        audio = create_local_tracks("samples/travel1-left.wav")
-        track_labels[audio.id] = "Agent"
-        pc.addTrack(audio)
-        audio1 = create_local_tracks("samples/travel1-right.wav")
-        track_labels[audio1.id] = "Client"
-        pc.addTrack(audio1)
+
+        _, _, file_names = next(walk("samples"), (None, None, []))
+        global file_count
+        file_count = file_names.__len__()
+
+        async def trackEndedHandler():
+            global file_count
+            file_count -= 1
+            if file_count == 0:
+                await pc.close()
+
+        for file_name in file_names:
+            audio = create_local_tracks("samples/" + file_name)
+            track_labels[audio.id] = Path(file_name).stem
+            audio.on("ended", trackEndedHandler)
+            pc.addTrack(audio)
+
         channel = pc.createDataChannel("output_data_channel")
 
         @channel.on("open")

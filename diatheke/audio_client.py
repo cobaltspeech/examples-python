@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright(2020) Cobalt Speech and Language Inc.
+# Copyright(2021) Cobalt Speech and Language Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License")
 # you may not use this file except in compliance with the License.
@@ -57,16 +57,13 @@ def wait_for_input(client, session, input_action):
         # and wait for it to trigger.
         pass
 
-    # Create an ASR stream
-    stream = client.new_session_asr_stream(session.token)
-
     # Start the recorder
     recorder = audio_io.Recorder(cmd=record_cmd)
     recorder.start()
     print("\nRecording...")
 
     # Record until we get a result
-    result = diatheke.read_ASR_audio(stream, recorder.process.stdout, 8192)
+    result = client.read_asr_audio(session.token, recorder.process.stdout, 8192)
     recorder.stop()
 
     # Display the result
@@ -77,20 +74,50 @@ def wait_for_input(client, session, input_action):
     return client.process_asr_result(session.token, result)
 
 def handle_reply(client, reply):
-    """Uses TTS to play back the relpy as speech."""
+    """Uses TTS to play back the reply as speech."""
 
     print("\n  Reply:")
     print("    Text: ", reply.text)
     print("    Luna Model: ", reply.luna_model)
-    
-    # Create the tts stream
-    stream = client.new_tts_stream(reply)
 
     # Start the player
     player = audio_io.Player(cmd=play_cmd)
     player.start()
-    diatheke.write_TTS_audio(stream, player.process.stdin)
+    client.write_tts_audio(reply, player.process.stdin)
     player.stop()
+
+def handle_transcribe(client, scribe):
+    """Creates a new transcribe stream and records audio from
+    the user. Displays transcription in the terminal."""
+    # Set up the result callback function
+    final_transcription = ""
+    def cb(result):
+        nonlocal final_transcription
+
+        # Print the result on the same line (overwrite current contents).
+        # Note that this assumes stdout is going to a terminal.
+        print(result.text, " (confidence: ", result.confidence, ")", end="\r")
+
+        if result.is_partial:
+            return
+
+        # As this is a final result (non-partial), go to the next line
+        # in preparation for the next result.
+        print("")
+
+        # Accumulate all non-partial results here.
+        final_transcription = final_transcription + result.text
+
+    # Start the recorder
+    recorder = audio_io.Recorder(cmd=record_cmd)
+    recorder.start()
+
+    # Run the transcription
+    client.read_transcribe_audio(scribe, recorder.process.stdout, 8192, cb)
+    recorder.stop()
+
+    # Display the final transcription
+    print("\nFinal Transcription: ", final_transcription)
 
 def handle_command(client, session, cmd):
     """Executes the task specified by the given command and
@@ -117,8 +144,11 @@ def process_actions(client, session):
             # Replies do not require a session update.
             handle_reply(client, action.reply)
         elif action.HasField("command"):
-            # The CommandAction will involve a session update
+            # The CommandAction will involve a session update.
             return handle_command(client, session, action.command)
+        elif action.HasField("transcribe"):
+            # Transcribe actions do not require a session update.
+            handle_transcribe(client, action.transcribe)
         else:
             raise RuntimeError("unknown action={}".format(action))
 

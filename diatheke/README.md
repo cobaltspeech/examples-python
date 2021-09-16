@@ -10,7 +10,7 @@ python3 -m venv diatheke-env
 source diatheke-env/bin/activate
 
 # Install the Diatheke SDK
-pip install "git+https://github.com/cobaltspeech/sdk-diatheke@v2.0.0#egg=cobalt-diatheke&subdirectory=grpc/py-diatheke"
+pip install "git+https://github.com/cobaltspeech/sdk-diatheke@v2.1.0#egg=cobalt-diatheke&subdirectory=grpc/py-diatheke"
 ```
 
 ## Run

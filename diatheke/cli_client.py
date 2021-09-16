@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright(2020) Cobalt Speech and Language Inc.
+# Copyright(2021) Cobalt Speech and Language Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License")
 # you may not use this file except in compliance with the License.
@@ -56,6 +56,14 @@ def handle_command(client, session, cmd):
     result = diatheke.CommandResult(id=cmd.id)
     return client.process_command_result(session.token, result)
 
+def handle_transcribe(scribe):
+    """Displays the transcribe action, but otherwise does nothing."""
+
+    print("\n  Transcribe:")
+    print("    ID:", scribe.id)
+    print("    Cubic Model ID:", scribe.cubic_model_id)
+    print("    Diatheke Model ID:", scribe.diatheke_model_id)
+
 def process_actions(client, session):
     """Executes the actions for the given session and returns
     an updated session."""
@@ -69,8 +77,11 @@ def process_actions(client, session):
             # Replies do not require a session update.
             handle_reply(client, action.reply)
         elif action.HasField("command"):
-            # The CommandAction will involve a session update
+            # The CommandAction will involve a session update.
             return handle_command(client, session, action.command)
+        elif action.HasField("transcribe"):
+            # Transcribe actions do not require a session update.
+            handle_transcribe(action.transcribe)
         else:
             raise RuntimeError("unknown action={}".format(action))
 

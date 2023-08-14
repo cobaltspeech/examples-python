@@ -26,7 +26,7 @@ server_address = "localhost:9002"
 insecure_connection = True
 
 # The model ID to use when initializing the Diatheke session.
-model_id = "1"
+model_id = "demo"
 
 
 def wait_for_input(c, session, input_action):

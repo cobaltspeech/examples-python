@@ -173,6 +173,36 @@ class Client(object):
         # Run the stream
         return self._client.StreamASR(send_data())
 
+    def read_asr_audio_with_partial(self, token, reader, result_handler, buff_size):
+        """Convenience function to create an ASR stream and send audio
+        from the given reader to the stream. This function blocks until
+        a result is returned. Data is sent in chunks defined by buff_size."""
+        # Check if we have a text or byte reader
+        is_text = isinstance(reader, io.TextIOBase)
+
+        # Set up a generator function to send the session token and audio
+        # data to Diatheke.
+        def send_data():
+            yield diatheke_pb2.StreamASRWithPartialsRequest(token=token)
+            while True:
+                data = reader.read(buff_size)
+                if (is_text and data == '') or (not is_text and data == b''):
+                    # Reached EOF
+                    return
+                
+                # Send the audio
+                yield diatheke_pb2.StreamASRWithPartialsRequest(audio=data)
+
+        # Run the stream
+        stream = self._client.StreamASRWithPartials(send_data())
+
+        # Loop over result and call result handler function
+        for result in stream:
+            result_handler(result)
+
+            if result.asr_result.text != "":
+                return result.asr_result
+
     def write_tts_audio(self, reply_action, writer):
         """Convenience function to create a TTS stream and send the audio
         to the given writer. This function blocks until there is no more

@@ -50,29 +50,35 @@ def wait_for_input(c, session, input_action):
         # as long as it wants before processing user input (such as
         # waiting for a wake-word below).
         pass
-    
+
     if input_action.requires_wake_word:
         # This action requires the wake-word to be spoken before
         # the user input will be accepted. Use a wake-word detector
         # and wait for it to trigger.
         pass
 
+    def result_handler(result):
+        if len(result.partial_result.alternatives) != 0:
+            print("\n  Partial Result:", result.partial_result)
+        else:
+            print("\n  ASRResult:")
+            print("    Text: ", result.asr_result.text)
+            print("    Confidence: ", result.asr_result.confidence)
+            print("    cubic result:", result.asr_result.cubic_result)
+
     # Start the recorder
     recorder = audio_io.Recorder(cmd=record_cmd)
     recorder.start()
-    print("\nRecording...")
+    print("\nStart recording...")
 
-    # Record until we get a result
-    result = c.read_asr_audio(session.token, recorder.process.stdout, 8192)
+    # Record until we get an asr_result
+    asr_result = c.read_asr_audio_with_partial(
+        session.token, recorder.process.stdout, result_handler, 8192)
     recorder.stop()
 
-    # Display the result
-    print("\n  ASRResult:")
-    print("    Text: ", result.asr_result.text)
-    print("    Confidence: ", result.asr_result.confidence)
-    print("    cubic result:", result.asr_result.cubic_result)
+    # ASR result found, process asr result and update session
+    return c.process_asr_result(session.token, asr_result)
 
-    return c.process_asr_result(session.token, result.asr_result)
 
 def handle_reply(c, reply):
     """Uses TTS to play back the reply as speech."""
@@ -87,11 +93,13 @@ def handle_reply(c, reply):
     c.write_tts_audio(reply, player.process.stdin)
     player.stop()
 
+
 def handle_transcribe(c, scribe):
     """Creates a new transcribe stream and records audio from
     the user. Displays transcription in the terminal."""
     # Set up the result callback function
     final_transcription = ""
+
     def cb(result):
         nonlocal final_transcription
 
@@ -120,6 +128,7 @@ def handle_transcribe(c, scribe):
     # Display the final transcription
     print("\nFinal Transcription: ", final_transcription)
 
+
 def handle_command(c, session, cmd):
     """Executes the task specified by the given command and
     returns an updated session based on the command result."""
@@ -131,6 +140,7 @@ def handle_command(c, session, cmd):
 
     # Update the session with the command result
     return c.process_command_result(session.token, cmd)
+
 
 def process_actions(c, session):
     """Executes the actions for the given session and returns
@@ -152,6 +162,7 @@ def process_actions(c, session):
             handle_transcribe(c, action.transcribe)
         else:
             raise RuntimeError("unknown action={}".format(action))
+
 
 if __name__ == "__main__":
     # Create the client
@@ -183,7 +194,11 @@ if __name__ == "__main__":
     try:
         # Run the main loop
         while True:
-            session = process_actions(c, session).session_output
+            res = process_actions(c, session).session_output
+
+            # Update session only if next action list is not empty.
+            if len(res.action_list) != 0:
+                session = res
 
     except BaseException as err:
         print(err)

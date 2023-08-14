@@ -1,5 +1,5 @@
 # Diatheke Examples
-This directory contains code demonstrating how to use the [Diatheke SDK](https://sdk-diatheke.cobaltspeech.com).
+This directory contains code demonstrating how to use Cobalt [Pre-generated SDK files for Python](https://github.com/cobaltspeech/py-genproto).
 
 ## Build
 Before using the examples, the Diatheke SDK package must be installed. For the examples, we recommend using a [virtual environment](https://docs.python.org/3/tutorial/venv.html) to do this.
@@ -9,8 +9,8 @@ Before using the examples, the Diatheke SDK package must be installed. For the e
 python3 -m venv diatheke-env
 source diatheke-env/bin/activate
 
-# Install the Diatheke SDK
-pip install "git+https://github.com/cobaltspeech/sdk-diatheke@v2.1.0#egg=cobalt-diatheke&subdirectory=grpc/py-diatheke"
+pip install --upgrade pip
+pip install "git+https://github.com/cobaltspeech/py-genproto"
 ```
 
 ## Run

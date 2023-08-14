@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright(2021) Cobalt Speech and Language Inc.
+# Copyright (2020 -- present) Cobalt Speech and Language, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License")
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import diatheke
+import client
 import audio_io
 
 
@@ -33,10 +33,10 @@ model_id = "1"
 record_cmd = "sox -q -d -c 1 -r 16000 -b 16 -L -e signed -t raw -"
 
 # The external process responsible for playing audio
-play_cmd = "sox -q -c 1 -r 48000 -b 16 -L -e signed -t raw - -d"
+play_cmd = "sox -q -c 1 -r 22050 -b 16 -L -e signed -t raw - -d"
 
 
-def wait_for_input(client, session, input_action):
+def wait_for_input(c, session, input_action):
     """Creates a new ASR stream and records audio from the user.
     The audio is sent to Diatheke until an ASR result is returned,
     which is used to return an updated session."""
@@ -63,17 +63,18 @@ def wait_for_input(client, session, input_action):
     print("\nRecording...")
 
     # Record until we get a result
-    result = client.read_asr_audio(session.token, recorder.process.stdout, 8192)
+    result = c.read_asr_audio(session.token, recorder.process.stdout, 8192)
     recorder.stop()
 
     # Display the result
     print("\n  ASRResult:")
-    print("    Text: ", result.text)
-    print("    Confidence: ", result.confidence)
+    print("    Text: ", result.asr_result.text)
+    print("    Confidence: ", result.asr_result.confidence)
+    print("    cubic result:", result.asr_result.cubic_result)
 
-    return client.process_asr_result(session.token, result)
+    return c.process_asr_result(session.token, result.asr_result)
 
-def handle_reply(client, reply):
+def handle_reply(c, reply):
     """Uses TTS to play back the reply as speech."""
 
     print("\n  Reply:")
@@ -83,10 +84,10 @@ def handle_reply(client, reply):
     # Start the player
     player = audio_io.Player(cmd=play_cmd)
     player.start()
-    client.write_tts_audio(reply, player.process.stdin)
+    c.write_tts_audio(reply, player.process.stdin)
     player.stop()
 
-def handle_transcribe(client, scribe):
+def handle_transcribe(c, scribe):
     """Creates a new transcribe stream and records audio from
     the user. Displays transcription in the terminal."""
     # Set up the result callback function
@@ -113,25 +114,25 @@ def handle_transcribe(client, scribe):
     recorder.start()
 
     # Run the transcription
-    client.read_transcribe_audio(scribe, recorder.process.stdout, 8192, cb)
+    c.read_transcribe_audio(scribe, recorder.process.stdout, 8192, cb)
     recorder.stop()
 
     # Display the final transcription
     print("\nFinal Transcription: ", final_transcription)
 
-def handle_command(client, session, cmd):
+def handle_command(c, session, cmd):
     """Executes the task specified by the given command and
     returns an updated session based on the command result."""
 
     print("\n  Command:")
     print("    ID:", cmd.id)
     print("    Input params:", cmd.input_parameters)
+    print("    NLU result:", cmd.nlu_result)
 
     # Update the session with the command result
-    result = diatheke.CommandResult(id=cmd.id)
-    return client.process_command_result(session.token, result)
+    return c.process_command_result(session.token, cmd)
 
-def process_actions(client, session):
+def process_actions(c, session):
     """Executes the actions for the given session and returns
     an updated session."""
 
@@ -139,25 +140,25 @@ def process_actions(client, session):
     for action in session.action_list:
         if action.HasField("input"):
             # The WaitForuserAction will involve a session update.
-            return wait_for_input(client, session, action.input)
+            return wait_for_input(c, session, action.input)
         elif action.HasField("reply"):
             # Replies do not require a session update.
-            handle_reply(client, action.reply)
+            handle_reply(c, action.reply)
         elif action.HasField("command"):
             # The CommandAction will involve a session update.
-            return handle_command(client, session, action.command)
+            return handle_command(c, session, action.command)
         elif action.HasField("transcribe"):
             # Transcribe actions do not require a session update.
-            handle_transcribe(client, action.transcribe)
+            handle_transcribe(c, action.transcribe)
         else:
             raise RuntimeError("unknown action={}".format(action))
 
 if __name__ == "__main__":
     # Create the client
-    client = diatheke.Client(server_address, insecure_connection)
+    c = client.Client(server_address, insecure_connection)
 
     # Print server version info
-    ver = client.version()
+    ver = c.version()
     print("Server Version")
     print("  Diatheke:", ver.diatheke)
     print("  Chosun (NLU):", ver.chosun)
@@ -166,7 +167,7 @@ if __name__ == "__main__":
     print("")
 
     # Print the list of available models on the server
-    model_list = client.list_models()
+    model_list = c.list_models()
     print("Available Models:")
     for mdl in model_list:
         print("  ID:", mdl.id)
@@ -177,16 +178,16 @@ if __name__ == "__main__":
         print("")
 
     # Create a new session
-    session = client.create_session(model_id)
+    session = c.create_session(model_id).session_output
 
     try:
         # Run the main loop
         while True:
-            session = process_actions(client, session)
+            session = process_actions(c, session).session_output
 
     except BaseException as err:
         print(err)
     finally:
         # Clean up the session when we are done
-        client.delete_session(session.token)
+        c.delete_session(session.token)
         print("Session closed")

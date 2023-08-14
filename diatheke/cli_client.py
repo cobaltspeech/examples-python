@@ -39,10 +39,12 @@ def wait_for_input(c, session, input_action):
     # Update the session with the text
     return c.process_text(session.token, text)
 
+
 def handle_reply(c, reply):
     """Prints the text of the given reply to stdout."""
 
     print("\n  Reply:", reply.text)
+
 
 def handle_command(c, session, cmd):
     """Executes the task specified by the given command and
@@ -56,6 +58,7 @@ def handle_command(c, session, cmd):
     # Update the session with the command result
     return c.process_command_result(session.token, cmd)
 
+
 def handle_transcribe(scribe):
     """Displays the transcribe action, but otherwise does nothing."""
 
@@ -63,6 +66,7 @@ def handle_transcribe(scribe):
     print("    ID:", scribe.id)
     print("    Cubic Model ID:", scribe.cubic_model_id)
     print("    Diatheke Model ID:", scribe.diatheke_model_id)
+
 
 def process_actions(c, session):
     """Executes the actions for the given session and returns
@@ -84,6 +88,7 @@ def process_actions(c, session):
             handle_transcribe(action.transcribe)
         else:
             raise RuntimeError("unknown action={}".format(action))
+
 
 if __name__ == "__main__":
     # Create the client

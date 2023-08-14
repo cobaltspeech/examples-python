@@ -91,23 +91,26 @@ class Client(object):
         wakeword. The wakeword will only have an effect if the model has
         wakeword detection enabled."""
         return self._client.CreateSession(diatheke_pb2.CreateSessionRequest(model_id=model,
-                                                       wakeword=wakeword))
+                                                                            wakeword=wakeword))
 
     def delete_session(self, token):
         """Cleans up the given token. Behavior is undefined if the given
         token is used again after calling this function."""
-        self._client.DeleteSession(diatheke_pb2.DeleteSessionRequest(token_data=token))
+        self._client.DeleteSession(
+            diatheke_pb2.DeleteSessionRequest(token_data=token))
 
     def process_text(self, token, text):
         """Sends the given text to Diatheke and returns an updated session
         token."""
-        req = diatheke_pb2.UpdateSessionRequest(session_input=diatheke_pb2.SessionInput(token=token, text=diatheke_pb2.TextInput(text=text)))
+        req = diatheke_pb2.UpdateSessionRequest(session_input=diatheke_pb2.SessionInput(
+            token=token, text=diatheke_pb2.TextInput(text=text)))
         return self._client.UpdateSession(req)
 
     def process_asr_result(self, token, result):
         """Sends the given ASR result to Diatheke and returns an updated
         session token."""
-        req = diatheke_pb2.UpdateSessionRequest(session_input=diatheke_pb2.SessionInput(token=token, asr=result))
+        req = diatheke_pb2.UpdateSessionRequest(
+            session_input=diatheke_pb2.SessionInput(token=token, asr=result))
         return self._client.UpdateSession(req)
 
     def process_command_result(self, token, cmd):
@@ -115,14 +118,16 @@ class Client(object):
         session token. This function should be called in response to a command
         action Diatheke sent previously."""
         cmd = diatheke_pb2.CommandResult(id=cmd.id)
-        req = diatheke_pb2.UpdateSessionRequest(session_input=diatheke_pb2.SessionInput(token=token, cmd=cmd))
+        req = diatheke_pb2.UpdateSessionRequest(
+            session_input=diatheke_pb2.SessionInput(token=token, cmd=cmd))
         return self._client.UpdateSession(req)
 
     def set_story(self, token, story_id, params):
         """Changes the current story for a Diatheke session. Returns an
         updated session token."""
         story = diatheke_pb2.SetStory(story_id=story_id, parameters=params)
-        req = diatheke_pb2.UpdateSessionRequest(session_input=diatheke_pb2.SessionInput(token=token, story=story))
+        req = diatheke_pb2.UpdateSessionRequest(
+            session_input=diatheke_pb2.SessionInput(token=token, story=story))
         return self._client.UpdateSession(req)
 
     def new_session_asr_stream(self, token):
@@ -166,10 +171,10 @@ class Client(object):
                 if (is_text and data == '') or (not is_text and data == b''):
                     # Reached EOF
                     return
-                
+
                 # Send the audio
                 yield diatheke_pb2.StreamASRRequest(audio=data)
-        
+
         # Run the stream
         return self._client.StreamASR(send_data())
 
@@ -189,7 +194,7 @@ class Client(object):
                 if (is_text and data == '') or (not is_text and data == b''):
                     # Reached EOF
                     return
-                
+
                 # Send the audio
                 yield diatheke_pb2.StreamASRWithPartialsRequest(audio=data)
 

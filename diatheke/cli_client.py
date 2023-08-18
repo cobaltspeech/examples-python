@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright(2021) Cobalt Speech and Language Inc.
+# Copyright (2020 -- present) Cobalt Speech and Language, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License")
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import diatheke
+import client
 
 
 # Define the client configuration
@@ -26,10 +26,10 @@ server_address = "localhost:9002"
 insecure_connection = True
 
 # The model ID to use when initializing the Diatheke session.
-model_id = "1"
+model_id = "demo"
 
 
-def wait_for_input(client, session, input_action):
+def wait_for_input(c, session, input_action):
     """Prompts the user for text input, then returns an updated
     session based on the user-supplied text."""
 
@@ -37,24 +37,27 @@ def wait_for_input(client, session, input_action):
     text = input("\n\nDiatheke> ")
 
     # Update the session with the text
-    return client.process_text(session.token, text)
+    return c.process_text(session.token, text)
 
-def handle_reply(client, reply):
+
+def handle_reply(c, reply):
     """Prints the text of the given reply to stdout."""
 
     print("\n  Reply:", reply.text)
 
-def handle_command(client, session, cmd):
+
+def handle_command(c, session, cmd):
     """Executes the task specified by the given command and
     returns an updated session based on the command result."""
 
     print("\n  Command:")
     print("    ID:", cmd.id)
     print("    Input params:", cmd.input_parameters)
+    print("    NLU result:", cmd.nlu_result)
 
     # Update the session with the command result
-    result = diatheke.CommandResult(id=cmd.id)
-    return client.process_command_result(session.token, result)
+    return c.process_command_result(session.token, cmd)
+
 
 def handle_transcribe(scribe):
     """Displays the transcribe action, but otherwise does nothing."""
@@ -64,7 +67,8 @@ def handle_transcribe(scribe):
     print("    Cubic Model ID:", scribe.cubic_model_id)
     print("    Diatheke Model ID:", scribe.diatheke_model_id)
 
-def process_actions(client, session):
+
+def process_actions(c, session):
     """Executes the actions for the given session and returns
     an updated session."""
 
@@ -72,25 +76,26 @@ def process_actions(client, session):
     for action in session.action_list:
         if action.HasField("input"):
             # The WaitForUserAction will involve a session update.
-            return wait_for_input(client, session, action.input)
+            return wait_for_input(c, session, action.input)
         elif action.HasField("reply"):
             # Replies do not require a session update.
-            handle_reply(client, action.reply)
+            handle_reply(c, action.reply)
         elif action.HasField("command"):
             # The CommandAction will involve a session update.
-            return handle_command(client, session, action.command)
+            return handle_command(c, session, action.command)
         elif action.HasField("transcribe"):
             # Transcribe actions do not require a session update.
             handle_transcribe(action.transcribe)
         else:
             raise RuntimeError("unknown action={}".format(action))
 
+
 if __name__ == "__main__":
     # Create the client
-    client = diatheke.Client(server_address, insecure_connection)
+    c = client.Client(server_address, insecure_connection)
 
     # Print server version info
-    ver = client.version()
+    ver = c.version()
     print("Server Version")
     print("  Diatheke:", ver.diatheke)
     print("  Chosun (NLU):", ver.chosun)
@@ -99,7 +104,7 @@ if __name__ == "__main__":
     print("")
 
     # Print the list of available models on the server
-    model_list = client.list_models()
+    model_list = c.list_models()
     print("Available Models:")
     for mdl in model_list:
         print("  ID:", mdl.id)
@@ -110,16 +115,16 @@ if __name__ == "__main__":
         print("")
 
     # Create a new session
-    session = client.create_session(model_id)
+    session = c.create_session(model_id).session_output
 
     try:
         # Run the main loop
         while True:
-            session = process_actions(client, session)
+            session = process_actions(c, session).session_output
 
     except BaseException as err:
-        print(err)
+        print("ERROR:", err)
     finally:
         # Clean up the session when we are done
-        client.delete_session(session.token)
+        c.delete_session(session.token)
         print("Session closed")

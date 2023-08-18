@@ -7,7 +7,7 @@ google-api-python-client==2.81.0
 google-auth==2.22.0
 google-auth-httplib2==0.1.0
 googleapis-common-protos==1.60.0
-grpcio==1.51.3
+grpcio==1.53.0
 httplib2==0.22.0
 idna==3.4
 protobuf==4.22.1

@@ -80,7 +80,7 @@ def wait_for_input(c, session, input_action):
     return c.process_asr_result(session.token, asr_result)
 
 
-def handle_reply(c, reply):
+def handle_reply(c, session, reply):
     """Uses TTS to play back the reply as speech."""
 
     print("\n  Reply:")
@@ -90,7 +90,7 @@ def handle_reply(c, reply):
     # Start the player
     player = audio_io.Player(cmd=play_cmd)
     player.start()
-    c.write_tts_audio(reply, player.process.stdin)
+    c.write_tts_audio(session.token, reply, player.process.stdin)
     player.stop()
 
 
@@ -153,7 +153,7 @@ def process_actions(c, session):
             return wait_for_input(c, session, action.input)
         elif action.HasField("reply"):
             # Replies do not require a session update.
-            handle_reply(c, action.reply)
+            handle_reply(c, session, action.reply)
         elif action.HasField("command"):
             # The CommandAction will involve a session update.
             return handle_command(c, session, action.command)

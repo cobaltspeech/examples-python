@@ -81,17 +81,15 @@ class Client(object):
         the server's config file."""
         return self._client.ListModels(diatheke_pb2.ListModelsRequest()).models
 
-    def create_session(self, model):
-        """Creates a new session using the specified model ID and return
-        the session token and actions."""
-        return self._client.CreateSession(diatheke_pb2.CreateSessionRequest(model_id=model))
+    def create_session(self, model_id, wakeword="", custom_metadata="", storage_file_prefix=""):
+        """Creates a new session using the specified _ID ID and return
+        the session token and actions. The wakeword will only have an 
+        effect if the model has wakeword detection enabled."""
+        metadata = diatheke_pb2.SessionMetadata(custom_metadata=custom_metadata,
+                                                storage_file_prefix=storage_file_prefix)
 
-    def create_session_with_wakeword(self, model, wakeword):
-        """Creates a new session using the specified model ID and custom
-        wakeword. The wakeword will only have an effect if the model has
-        wakeword detection enabled."""
-        return self._client.CreateSession(diatheke_pb2.CreateSessionRequest(model_id=model,
-                                                                            wakeword=wakeword))
+        return self._client.CreateSession(diatheke_pb2.CreateSessionRequest(
+            model_id=model_id, wakeword=wakeword, metadata=metadata))
 
     def delete_session(self, token):
         """Cleans up the given token. Behavior is undefined if the given
@@ -138,10 +136,11 @@ class Client(object):
         stream.send_token(token)
         return stream
 
-    def new_tts_stream(self, reply):
+    def new_tts_stream(self, token, reply):
         """Creates a new stream to receive TTS audio from Diatheke based
         on the given reply action."""
-        return self._client.StreamTTS(diatheke_pb2.StreamTTSRequest(reply_action=reply))
+        return self._client.StreamTTS(diatheke_pb2.StreamTTSRequest(
+            reply_action=reply, token=token))
 
     def new_transcribe_stream(self, action):
         """Creates a new stream for transcriptions usually in response to
@@ -208,7 +207,7 @@ class Client(object):
             if result.asr_result.text != "":
                 return result.asr_result
 
-    def write_tts_audio(self, reply_action, writer):
+    def write_tts_audio(self, token, reply_action, writer):
         """Convenience function to create a TTS stream and send the audio
         to the given writer. This function blocks until there is no more
         audio to receive."""
@@ -216,7 +215,7 @@ class Client(object):
         is_text = isinstance(writer, io.TextIOBase)
 
         # Create the stream
-        stream = self.new_tts_stream(reply_action)
+        stream = self.new_tts_stream(token, reply_action)
         for data in stream:
             if is_text:
                 # Convert the text to a string before writing

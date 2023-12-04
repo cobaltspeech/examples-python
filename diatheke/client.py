@@ -224,23 +224,6 @@ class Client(object):
         except Exception as err:
             print("Error while trying to stream audio : {}".format(err))
 
-    def write_tts_audio(self, token, reply_action, writer):
-        """Convenience function to create a TTS stream and send the audio
-        to the given writer. This function blocks until there is no more
-        audio to receive."""
-        # Check if we have a text or byte writer
-        is_text = isinstance(writer, io.TextIOBase)
-
-        # Create the stream
-        stream = self.new_tts_stream(token, reply_action)
-        for data in stream:
-            if is_text:
-                # Convert the text to a string before writing
-                writer.write(str(data.audio))
-            else:
-                writer.write(data.audio)
-     
-
     def read_asr_audio_with_partial(self, token, reader, result_handler, buff_size):
         """Convenience function to create an ASR stream and send audio
         from the given reader to the stream. This function blocks until

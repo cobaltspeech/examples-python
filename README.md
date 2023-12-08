@@ -9,7 +9,7 @@ The [cubic](./cubic) folder contains three example clients that interact with Cu
 
 ## Luna Example
 The [luna](./luna) folder contains an example client that interacts with Luna.
-* [cli_client](./luna/cli_client.py), which allos a user to send text to synthesize to Luna, then streams back the audio as it is received. The audio I/O is handled by a user-specified external process, such as sox, aplay, arecord, etc.
+* [cli_client](./luna/cli_client.py), which allows a user to send text to synthesize to Luna, then streams back the audio as it is received. The audio I/O is handled by a user-specified external process, such as sox, aplay, arecord, etc.
 
 ## Diatheke Example
 The [diatheke](./diatheke) folder contains two example clients that interact with Diatheke.

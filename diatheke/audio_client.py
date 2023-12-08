@@ -27,14 +27,36 @@ server_address = "localhost:9002"
 insecure_connection = True
 
 # The model ID to use when initializing the Diatheke session.
-model_id = "1"
+model_id = "demo"
 
 # The external process responsible for recording audio
 record_cmd = "sox -q -d -c 1 -r 16000 -b 16 -L -e signed -t raw -"
-
 # The external process responsible for playing audio
 play_cmd = "sox -q -c 1 -r 22050 -b 16 -L -e signed -t raw - -d"
 
+recorder = audio_io.Recorder(cmd=record_cmd)
+
+def wait_for_wakeword(c, recorder):
+    final_transcription = ""
+
+    def standby(resp):
+        nonlocal final_transcription
+
+        # Print the result on the same line (overwrite current contents).
+        # Note that this assumes stdout is going to a terminal.
+        print(resp.result)
+
+        if resp.result.is_partial:
+            return
+
+        # Accumulate all non-partial results here.
+        final_transcription = final_transcription + resp.result.alternatives[0].transcript_raw
+
+    
+    # Record until we get a wakeword result to change from standby to proper ASR
+    standby = c.read_standby_audio(recorder.process.stdout, 8192, standby)
+    print(final_transcription)
+    return
 
 def wait_for_input(c, session, input_action):
     """Creates a new ASR stream and records audio from the user.
@@ -66,16 +88,8 @@ def wait_for_input(c, session, input_action):
             print("    Confidence: ", result.asr_result.confidence)
             print("    cubic result:", result.asr_result.cubic_result)
 
-    # Start the recorder
-    recorder = audio_io.Recorder(cmd=record_cmd)
-    recorder.start()
-    print("\nStart recording...")
 
-    # Record until we get an asr_result
-    asr_result = c.read_asr_audio_with_partial(
-        session.token, recorder.process.stdout, result_handler, 8192)
-    recorder.stop()
-
+    asr_result = c.read_asr_audio_with_partial(session.token, recorder.process.stdout, result_handler, 8192)
     # ASR result found, process asr result and update session
     return c.process_asr_result(session.token, asr_result)
 
@@ -99,7 +113,6 @@ def handle_transcribe(c, scribe):
     the user. Displays transcription in the terminal."""
     # Set up the result callback function
     final_transcription = ""
-
     def cb(result):
         nonlocal final_transcription
 
@@ -192,8 +205,15 @@ if __name__ == "__main__":
     session = c.create_session(model_id).session_output
 
     try:
+        standby = True
+        recorder.start()
+        print("\nStart recording...")
         # Run the main loop
         while True:
+            if standby == True:
+                wait_for_wakeword(c, recorder)
+            standby = False
+
             res = process_actions(c, session).session_output
 
             # Update session only if next action list is not empty.

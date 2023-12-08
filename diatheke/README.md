@@ -19,10 +19,10 @@ These examples are intended to be run from the command line, where they will acc
 ```bash
 cd <path/to/examples-python/diatheke>
 
-# Run the text-based client
+# Run the audio-based client
 python audio_client.py
 
-# Run the audio-based client
+# Run the text-based client
 python cli_client.py
 ```
 

@@ -1,16 +1,16 @@
 cachetools==5.3.1
 certifi==2023.7.22
 charset-normalizer==3.2.0
-cobaltspeech @ git+https://github.com/cobaltspeech/py-genproto@b9f06a267c6b549432762232b32e941cc0aefa00
+cobaltspeech @ git+https://github.com/cobaltspeech/py-genproto@03ad7ede9ddc21d9c04560ae464e81ffda773249
 google-api-core==2.11.1
 google-api-python-client==2.81.0
 google-auth==2.22.0
 google-auth-httplib2==0.1.0
 googleapis-common-protos==1.60.0
-grpcio==1.51.3
+grpcio==1.66.1
 httplib2==0.22.0
 idna==3.4
-protobuf==4.22.1
+protobuf==5.28.1
 pyasn1==0.5.0
 pyasn1-modules==0.3.0
 pyparsing==3.1.1

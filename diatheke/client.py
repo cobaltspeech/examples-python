@@ -81,7 +81,10 @@ class Client(object):
         the server's config file."""
         return self._client.ListModels(diatheke_pb2.ListModelsRequest()).models
 
-    def create_session(self, model_id, wakeword="", custom_metadata="", storage_file_prefix=""):
+    def create_session(self, model_id: str, wakeword: str = "",
+                       custom_metadata: str = "", storage_file_prefix: str = "",
+                       input_audio_format: diatheke_pb2.AudioFormat = None,
+                       output_audio_format: diatheke_pb2.AudioFormat = None):
         """Creates a new session using the specified _ID ID and return
         the session token and actions. The wakeword will only have an 
         effect if the model has wakeword detection enabled."""
@@ -89,7 +92,9 @@ class Client(object):
                                                 storage_file_prefix=storage_file_prefix)
 
         return self._client.CreateSession(diatheke_pb2.CreateSessionRequest(
-            model_id=model_id, wakeword=wakeword, metadata=metadata))
+            model_id=model_id, wakeword=wakeword, metadata=metadata,
+            input_audio_format=input_audio_format,
+            output_audio_format=output_audio_format))
 
     def delete_session(self, token):
         """Cleans up the given token. Behavior is undefined if the given

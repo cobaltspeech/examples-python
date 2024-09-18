@@ -17,7 +17,7 @@
 
 import client
 import audio_io
-
+import cobaltspeech.diatheke.v3.diatheke_pb2 as diatheke_pb2
 
 # Define the client configuration
 server_address = "localhost:9002"
@@ -33,7 +33,7 @@ model_id = "1"
 record_cmd = "sox -q -d -c 1 -r 16000 -b 16 -L -e signed -t raw -"
 
 # The external process responsible for playing audio
-play_cmd = "sox -q -c 1 -r 22050 -b 16 -L -e signed -t raw - -d"
+play_cmd = "sox -q -c 1 -r 16000 -b 16 -L -e signed -t raw - -d"
 
 
 def wait_for_input(c, session, input_action):
@@ -189,7 +189,18 @@ if __name__ == "__main__":
         print("")
 
     # Create a new session
-    session = c.create_session(model_id).session_output
+
+    input_audio_format = diatheke_pb2.AudioFormat(sample_rate=16000, channels=1, bit_depth=16,
+                                                  codec=diatheke_pb2.AUDIO_CODEC_RAW,
+                                                  encoding=diatheke_pb2.AUDIO_ENCODING_SIGNED,
+                                                  byte_order=diatheke_pb2.BYTE_ORDER_LITTLE_ENDIAN)
+    output_audio_format = diatheke_pb2.AudioFormat(sample_rate=16000, channels=1, bit_depth=16,
+                                                   codec=diatheke_pb2.AUDIO_CODEC_RAW,
+                                                   encoding=diatheke_pb2.AUDIO_ENCODING_SIGNED,
+                                                   byte_order=diatheke_pb2.BYTE_ORDER_LITTLE_ENDIAN)
+    session = c.create_session(model_id,
+                               input_audio_format=input_audio_format,
+                               output_audio_format=output_audio_format).session_output
 
     try:
         # Run the main loop
